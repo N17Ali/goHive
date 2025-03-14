@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package task;
+
+option go_package= "github.com/n17ali/gohive/internal/pb";
+
+service TaskService {
+    rpc CreateTask(CreateTaskRequest) returns (CreateTaskRresponse);
+    rpc GetTask(GetTaskRequest) returns (GetTaskRresponse);
+    rpc UpdateTask(UpdateTaskRequest) returns(UpdateTaskRresponse);
+    rpc DeleteTask(DeleteTaskRequest) returns (DeleteTaskResponse);
+}
+
+message Task {
+    string id =1;
+    string title = 2;
+    string description = 3;
+    int64 interval = 4;
+}
+
+message CreateTaskRequest {
+    Task task = 1;
+}
+
+message CreateTaskRresponse {
+    string id = 1;
+}
+
+message GetTaskRequest {
+    string id = 1;
+}
+
+message GetTaskRresponse {
+    Task task = 1;
+}
+
+message UpdateTaskRequest {
+    string id = 1;
+    Task task = 2;
+}
+
+message UpdateTaskRresponse {
+    bool success = 1;
+}
+
+message DeleteTaskRequest {
+    string id = 1;
+}
+
+message DeleteTaskResponse {
+    bool success = 1;
+}
