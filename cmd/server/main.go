@@ -7,8 +7,9 @@ import (
 	"net"
 	"time"
 
-	pb "github.com/n17ali/gohive/internal/pb"
+	"github.com/n17ali/gohive/internal/logs"
 	"github.com/n17ali/gohive/internal/task"
+	"github.com/n17ali/gohive/internal/taskpb"
 	"github.com/n17ali/gohive/pkg/redis"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -22,13 +23,15 @@ func main() {
 		log.Fatalf("Failed to listen: %v", err)
 	}
 
+	logger := logs.RedisLogger{}
 	grpcServer := grpc.NewServer()
-	pb.RegisterTaskServiceServer(grpcServer, &task.TaskServiceServer{})
+	taskService := task.NewTaskService(logger)
+	taskpb.RegisterTaskServiceServer(grpcServer, taskService)
 
 	reflection.Register(grpcServer)
 
 	ctx := context.Background()
-	executor := task.NewTaskExecutor(10 * time.Second)
+	executor := task.NewTaskExecutor(10*time.Second, logger)
 	go executor.Start(ctx)
 
 	fmt.Println("🚀 gRPC Server running on port 50051...")

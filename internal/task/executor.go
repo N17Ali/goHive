@@ -5,17 +5,21 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/n17ali/gohive/internal/logs"
 )
 
 type TaskExecutor struct {
 	interval time.Duration
 	stopChan chan struct{}
+	logger   logs.Logger
 }
 
-func NewTaskExecutor(interval time.Duration) *TaskExecutor {
+func NewTaskExecutor(interval time.Duration, logger logs.Logger) *TaskExecutor {
 	return &TaskExecutor{
 		interval: interval,
 		stopChan: make(chan struct{}),
+		logger:   logger,
 	}
 }
 
@@ -53,13 +57,13 @@ func (e *TaskExecutor) runScheduledTasks(ctx context.Context) {
 }
 
 func (e *TaskExecutor) executeTask(ctx context.Context, task Task) {
-	log.Printf("executing task: %s", task.Title)
-
 	err := runTaskFunction(task.ID)
 	if err != nil {
 		log.Printf("task %s failed: %v\n", task.Title, err)
+		e.logger.LogTaskExecution(ctx, task.ID, "FAILED", err.Error())
 	} else {
 		log.Printf("task %s completed successfuly\n", task.Title)
+		e.logger.LogTaskExecution(ctx, task.ID, "SUCCESS", "task executed successfuly")
 	}
 }
 

@@ -3,7 +3,6 @@ package task
 import (
 	context "context"
 	"encoding/json"
-	"log"
 	"time"
 
 	"github.com/n17ali/gohive/pkg/redis"
@@ -83,14 +82,9 @@ func GetTaskLastRunTime(ctx context.Context, taskID string) (time.Time, error) {
 	if err != nil {
 		return time.Time{}, err
 	}
-	log.Printf("Get lastRunTime is %d\n", ts)
 	return time.Unix(ts, 0), nil
 }
 
 func SetTaskLatRunTime(ctx context.Context, taskID string, t time.Time) error {
-	if err := redis.Client.Set(ctx, "lastrun:"+taskID, t.Unix(), 0).Err(); err != nil {
-		return err
-	}
-	log.Printf("Set lastRunTime is %s\n", t)
-	return nil
+	return redis.Client.Set(ctx, "lastrun:"+taskID, t.Unix(), 0).Err()
 }
