@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package task;
 
-option go_package= "github.com/n17ali/gohive/internal/pb";
+option go_package= "github.com/n17ali/gohive/internal/taskpb";
 
 service TaskService {
     rpc CreateTask(CreateTaskRequest) returns (CreateTaskRresponse);

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
+	"time"
 
 	pb "github.com/n17ali/gohive/internal/pb"
 	"github.com/n17ali/gohive/internal/task"
@@ -24,6 +26,10 @@ func main() {
 	pb.RegisterTaskServiceServer(grpcServer, &task.TaskServiceServer{})
 
 	reflection.Register(grpcServer)
+
+	ctx := context.Background()
+	executor := task.NewTaskExecutor(10 * time.Second)
+	go executor.Start(ctx)
 
 	fmt.Println("🚀 gRPC Server running on port 50051...")
 	if err := grpcServer.Serve(ln); err != nil {
