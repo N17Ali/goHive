@@ -4,9 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/n17ali/gohive/internal/logs"
+)
+
+const (
+	MaxRetries   = 3
+	RetryBackoff = 5 * time.Second
 )
 
 type TaskExecutor struct {
@@ -57,14 +63,24 @@ func (e *TaskExecutor) runScheduledTasks(ctx context.Context) {
 }
 
 func (e *TaskExecutor) executeTask(ctx context.Context, task Task) {
-	err := runTaskFunction(task.ID)
-	if err != nil {
-		log.Printf("task %s failed: %v\n", task.Title, err)
-		e.logger.LogTaskExecution(ctx, task.ID, "FAILED", err.Error())
-	} else {
-		log.Printf("task %s completed successfuly\n", task.Title)
-		e.logger.LogTaskExecution(ctx, task.ID, "SUCCESS", "task executed successfuly")
+	var err error
+	for attempt := 1; attempt <= MaxRetries; attempt++ {
+		err = runTaskFunction(task.ID)
+		if err == nil {
+			log.Printf("task %s completed successfuly\n", task.Title)
+			e.logger.LogTaskExecution(ctx, task.ID, "SUCCESS", "task executed successfuly")
+			return
+		}
+		log.Printf("task %s failed on attempt %d: %v\n", task.Title, attempt, err)
+		e.logger.LogTaskExecution(ctx, task.ID, "FAILED", "Retry attempt "+strconv.Itoa(attempt)+": "+err.Error())
+
+		if attempt < MaxRetries {
+			log.Printf("Retrying task %s in %v...\n", task.Title, RetryBackoff)
+			time.Sleep(RetryBackoff)
+		}
 	}
+	log.Printf("task %s failed after %d attempts\n", task.Title, MaxRetries)
+	e.logger.LogTaskExecution(ctx, task.ID, "PERMANENT_FAILURE", "task failed after max retries")
 }
 
 func runTaskFunction(taskID string) error {
