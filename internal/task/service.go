@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/n17ali/gohive/api/taskpb"
 	"github.com/n17ali/gohive/internal/logs"
-	"github.com/n17ali/gohive/internal/taskpb"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
