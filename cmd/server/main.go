@@ -9,8 +9,8 @@ import (
 
 	"github.com/n17ali/gohive/api/taskpb"
 	"github.com/n17ali/gohive/internal/logs"
+	"github.com/n17ali/gohive/internal/storage/redis"
 	"github.com/n17ali/gohive/internal/task"
-	"github.com/n17ali/gohive/pkg/redis"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/n17ali/gohive/pkg/redis"
+	"github.com/n17ali/gohive/internal/storage/redis"
 )
 
 type Task struct {
