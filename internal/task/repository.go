@@ -5,19 +5,29 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/n17ali/gohive/internal/storage/redis"
+	"github.com/n17ali/gohive/internal/storage"
 )
 
-func SaveTask(ctx context.Context, task Task) error {
+type TaskRepository struct {
+	store storage.Store
+}
+
+func NewTaskRepository(store storage.Store) *TaskRepository {
+	return &TaskRepository{
+		store: store,
+	}
+}
+
+func (r *TaskRepository) SaveTask(ctx context.Context, task Task) error {
 	data, err := json.Marshal(task)
 	if err != nil {
 		return err
 	}
-	return redis.Client.Set(ctx, "task:"+task.ID, data, 0).Err()
+	return r.store.Set(ctx, "task:"+task.ID, data)
 }
 
-func GetTask(ctx context.Context, id string) (*Task, error) {
-	data, err := redis.Client.Get(ctx, "task:"+id).Result()
+func (r *TaskRepository) GetTask(ctx context.Context, id string) (*Task, error) {
+	data, err := r.store.Get(ctx, "task:"+id)
 	if err != nil {
 		return nil, err
 	}
@@ -30,8 +40,8 @@ func GetTask(ctx context.Context, id string) (*Task, error) {
 	return &task, nil
 }
 
-func UpdateTask(ctx context.Context, id string, task Task) error {
-	existingTask, err := GetTask(ctx, id)
+func (r *TaskRepository) UpdateTask(ctx context.Context, id string, task Task) error {
+	existingTask, err := r.GetTask(ctx, id)
 	if err != nil {
 		return err
 	}
@@ -40,20 +50,20 @@ func UpdateTask(ctx context.Context, id string, task Task) error {
 	existingTask.Description = task.Description
 	existingTask.Interval = task.Interval
 
-	return SaveTask(ctx, *existingTask)
+	return r.SaveTask(ctx, *existingTask)
 }
 
-func DeleteTask(ctx context.Context, id string) error {
-	if err := redis.Client.Del(ctx, "task:"+id).Err(); err != nil {
+func (r *TaskRepository) DeleteTask(ctx context.Context, id string) error {
+	if err := r.store.Del(ctx, "task:"+id); err != nil {
 		return err
 	}
 	return nil
 }
 
-func GetAllTask(ctx context.Context) ([]Task, error) {
+func (r *TaskRepository) GetAllTask(ctx context.Context) ([]Task, error) {
 	var tasks []Task
 
-	keys, err := redis.Client.Keys(ctx, "task:*").Result()
+	keys, err := r.store.Keys(ctx, "task:*")
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +71,7 @@ func GetAllTask(ctx context.Context) ([]Task, error) {
 	for _, key := range keys {
 		taskID := key[len("task:"):]
 
-		task, err := GetTask(ctx, taskID)
+		task, err := r.GetTask(ctx, taskID)
 		if err == nil {
 			tasks = append(tasks, *task)
 		}
@@ -70,14 +80,20 @@ func GetAllTask(ctx context.Context) ([]Task, error) {
 	return tasks, nil
 }
 
-func GetTaskLastRunTime(ctx context.Context, taskID string) (time.Time, error) {
-	ts, err := redis.Client.Get(ctx, "lastrun:"+taskID).Int64()
+func (r *TaskRepository) GetTaskLastRunTime(ctx context.Context, taskID string) (time.Time, error) {
+	ts, err := r.store.Get(ctx, "lastrun:"+taskID)
 	if err != nil {
 		return time.Time{}, err
 	}
-	return time.Unix(ts, 0), nil
+
+	timestamp, err := time.Parse("2006-01-02T15:04:05Z", ts)
+	if err != nil {
+		return time.Time{}, err
+	}
+
+	return timestamp, nil
 }
 
-func SetTaskLatRunTime(ctx context.Context, taskID string, t time.Time) error {
-	return redis.Client.Set(ctx, "lastrun:"+taskID, t.Unix(), 0).Err()
+func (r *TaskRepository) SetTaskLatRunTime(ctx context.Context, taskID string, t time.Time) error {
+	return r.store.Set(ctx, "lastrun:"+taskID, t.Unix())
 }

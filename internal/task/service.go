@@ -13,11 +13,15 @@ import (
 
 type TaskServiceServer struct {
 	taskpb.UnimplementedTaskServiceServer
-	logger logs.Logger
+	logger     logs.Logger
+	repository *TaskRepository
 }
 
-func NewTaskService(logger logs.Logger) *TaskServiceServer {
-	return &TaskServiceServer{logger: logger}
+func NewTaskService(logger logs.Logger, repo *TaskRepository) *TaskServiceServer {
+	return &TaskServiceServer{
+		logger:     logger,
+		repository: repo,
+	}
 }
 
 func (s *TaskServiceServer) CreateTask(ctx context.Context, req *taskpb.CreateTaskRequest) (*taskpb.CreateTaskRresponse, error) {
@@ -30,7 +34,7 @@ func (s *TaskServiceServer) CreateTask(ctx context.Context, req *taskpb.CreateTa
 		Interval:    time.Duration(req.Task.Interval),
 	}
 
-	if err := SaveTask(ctx, task); err != nil {
+	if err := s.repository.SaveTask(ctx, task); err != nil {
 		return nil, err
 	}
 
@@ -38,7 +42,7 @@ func (s *TaskServiceServer) CreateTask(ctx context.Context, req *taskpb.CreateTa
 }
 
 func (s *TaskServiceServer) GetTask(ctx context.Context, req *taskpb.GetTaskRequest) (*taskpb.GetTaskRresponse, error) {
-	task, err := GetTask(ctx, req.Id)
+	task, err := s.repository.GetTask(ctx, req.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +63,7 @@ func (s *TaskServiceServer) UpdateTask(ctx context.Context, req *taskpb.UpdateTa
 		Interval:    time.Duration(req.Task.Interval),
 	}
 
-	err := UpdateTask(ctx, req.Id, updatedTask)
+	err := s.repository.UpdateTask(ctx, req.Id, updatedTask)
 	if err != nil {
 		return &taskpb.UpdateTaskRresponse{Success: false}, err
 	}
@@ -68,7 +72,7 @@ func (s *TaskServiceServer) UpdateTask(ctx context.Context, req *taskpb.UpdateTa
 }
 
 func (s *TaskServiceServer) DeleteTask(ctx context.Context, req *taskpb.DeleteTaskRequest) (*taskpb.DeleteTaskResponse, error) {
-	if err := DeleteTask(ctx, req.Id); err != nil {
+	if err := s.repository.DeleteTask(ctx, req.Id); err != nil {
 		return &taskpb.DeleteTaskResponse{Success: false}, err
 	}
 
@@ -84,9 +88,9 @@ func (s *TaskServiceServer) GetTaskLogs(ctx context.Context, req *taskpb.GetTask
 	var resp taskpb.GetTaskLogsResponse
 	for _, entry := range logEntries {
 		resp.Logs = append(resp.Logs, &taskpb.TaskLog{
-			Time:    entry["time"],
-			Status:  entry["status"],
-			Message: entry["message"],
+			Time:    entry["time"].(string),
+			Status:  entry["status"].(string),
+			Message: entry["message"].(string),
 		})
 	}
 

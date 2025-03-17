@@ -2,22 +2,38 @@ package redis
 
 import (
 	"context"
-	"log"
 
+	"github.com/n17ali/gohive/internal/storage"
 	"github.com/redis/go-redis/v9"
 )
 
-var Client *redis.Client
+type RedisStore struct {
+	client *redis.Client
+}
 
-func InitRedis(addr string, db int) {
-	Client = redis.NewClient(&redis.Options{
+func NewRedisStore(client *redis.Client) storage.Store {
+	return &RedisStore{client: client}
+}
+
+func NewRedisClient(addr string, db int) *redis.Client {
+	return redis.NewClient(&redis.Options{
 		Addr: addr,
 		DB:   db,
 	})
+}
 
-	ctx := context.Background()
-	_, err := Client.Ping(ctx).Result()
-	if err != nil {
-		log.Fatalf("failed to connect to Redis %v", err)
-	}
+func (r *RedisStore) Set(ctx context.Context, key string, value any) error {
+	return r.client.Set(ctx, key, value, 0).Err()
+}
+
+func (r *RedisStore) Get(ctx context.Context, key string) (string, error) {
+	return r.client.Get(ctx, key).Result()
+}
+
+func (r *RedisStore) Del(ctx context.Context, key string) error {
+	return r.client.Del(ctx, key).Err()
+}
+
+func (r *RedisStore) Keys(ctx context.Context, pattern string) ([]string, error) {
+	return r.client.Keys(ctx, pattern).Result()
 }

@@ -16,16 +16,18 @@ const (
 )
 
 type TaskExecutor struct {
-	interval time.Duration
-	stopChan chan struct{}
-	logger   logs.Logger
+	interval   time.Duration
+	stopChan   chan struct{}
+	logger     logs.Logger
+	repository *TaskRepository
 }
 
-func NewTaskExecutor(interval time.Duration, logger logs.Logger) *TaskExecutor {
+func NewTaskExecutor(interval time.Duration, logger logs.Logger, repo *TaskRepository) *TaskExecutor {
 	return &TaskExecutor{
-		interval: interval,
-		stopChan: make(chan struct{}),
-		logger:   logger,
+		interval:   interval,
+		stopChan:   make(chan struct{}),
+		logger:     logger,
+		repository: repo,
 	}
 }
 
@@ -46,7 +48,7 @@ func (e *TaskExecutor) Start(ctx context.Context) {
 
 func (e *TaskExecutor) runScheduledTasks(ctx context.Context) {
 	log.Printf("geting all task...")
-	tasks, err := GetAllTask(ctx)
+	tasks, err := e.repository.GetAllTask(ctx)
 	if err != nil {
 		log.Printf("error fetching tasks:%v\n", err)
 		return
@@ -54,10 +56,10 @@ func (e *TaskExecutor) runScheduledTasks(ctx context.Context) {
 	now := time.Now()
 
 	for _, task := range tasks {
-		lastTaskRunTime, err := GetTaskLastRunTime(ctx, task.ID)
+		lastTaskRunTime, err := e.repository.GetTaskLastRunTime(ctx, task.ID)
 		if err != nil || now.Sub(lastTaskRunTime) >= task.Interval {
 			go e.executeTask(ctx, task)
-			SetTaskLatRunTime(ctx, task.ID, now)
+			e.repository.SetTaskLatRunTime(ctx, task.ID, now)
 		}
 	}
 }
