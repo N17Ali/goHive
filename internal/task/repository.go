@@ -8,13 +8,6 @@ import (
 	"github.com/n17ali/gohive/internal/storage/redis"
 )
 
-type Task struct {
-	ID          string        `json:"id"`
-	Title       string        `json:"title"`
-	Description string        `json:"description"`
-	Interval    time.Duration `json:"inteval"`
-}
-
 func SaveTask(ctx context.Context, task Task) error {
 	data, err := json.Marshal(task)
 	if err != nil {
